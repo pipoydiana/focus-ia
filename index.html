@@ -94,7 +94,7 @@ canvas {
     <div class="progress-bar" id="barra"></div>
   </div>
 
-  <h2 id="timer">⏱️ 25:00</h2>
+  <h2 id="timer">⏱️ 01:00</h2>
   <h2 id="estado">Estado: ---</h2>
 
   <div class="stats">
@@ -110,8 +110,12 @@ canvas {
 <audio id="alerta" src="https://www.soundjay.com/button/beep-07.wav"></audio>
 
 <script>
+
+// 🔗 LINK CORREGIDO (con / al final)
+const URL = "https://teachablemachine.withgoogle.com/models/rnFxUio5U/";
+
+// VARIABLES
 let model, webcam, maxPredictions;
-const URL = "https://teachablemachine.withgoogle.com/models/rnFxUio5U";
 
 // ⏱️ CONFIG
 let tiempoTotal = 60; // demo
@@ -197,8 +201,16 @@ function alerta() {
   document.getElementById("contador").innerText = distracciones;
 }
 
-// 🚀 START
-init();
+// 🚀 INICIO SEGURO (para navegador)
+let iniciado = false;
+
+document.body.addEventListener("click", () => {
+  if (!iniciado) {
+    iniciado = true;
+    init();
+  }
+});
+
 </script>
 
 </body>
