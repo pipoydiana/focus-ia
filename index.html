@@ -1,215 +1,268 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Focus IA Pro</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus IA Pro</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 
-<style>
-body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
 
-.container {
-  background: white;
-  padding: 30px;
-  border-radius: 20px;
-  width: 360px;
-  text-align: center;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-  transition: 0.3s;
-}
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 380px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            transition: background 0.5s ease;
+        }
 
-h1 {
-  margin-bottom: 5px;
-}
+        h1 { margin-bottom: 5px; font-size: 24px; }
+        p { margin-top: 0; color: #666; font-size: 14px; }
 
-#estado {
-  font-size: 22px;
-  margin: 10px 0;
-  font-weight: bold;
-}
+        #timer {
+            font-size: 48px;
+            margin: 15px 0;
+            font-weight: bold;
+            color: #2d3748;
+        }
 
-#timer {
-  font-size: 38px;
-  margin: 10px 0;
-}
+        #estado {
+            font-size: 20px;
+            margin: 10px 0;
+            padding: 5px;
+            border-radius: 8px;
+        }
 
-.progress {
-  width: 100%;
-  height: 10px;
-  background: #eee;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 15px;
-}
+        .progress {
+            width: 100%;
+            height: 12px;
+            background: #edf2f7;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
 
-.progress-bar {
-  height: 100%;
-  width: 100%;
-  background: #667eea;
-  transition: width 1s linear;
-}
+        .progress-bar {
+            height: 100%;
+            width: 100%;
+            background: #667eea;
+            transition: width 1s linear;
+        }
 
-.stats {
-  font-size: 14px;
-  margin-bottom: 10px;
-}
+        .stats {
+            font-size: 16px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
 
-button {
-  padding: 10px 18px;
-  margin: 5px;
-  border: none;
-  border-radius: 10px;
-  background: #667eea;
-  color: white;
-  cursor: pointer;
-}
+        .controles button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
 
-button:hover {
-  background: #5a67d8;
-}
+        .controles button:active { transform: scale(0.95); }
+        .btn-start { background: #48bb78; }
+        .btn-pause { background: #ed8936; }
+        .btn-reset { background: #f56565; }
 
-canvas {
-  margin-top: 15px;
-  border-radius: 15px;
-}
-</style>
+        #webcam-container {
+            margin-top: 20px;
+            border: 4px solid #eee;
+            border-radius: 15px;
+            overflow: hidden;
+            display: inline-block;
+            line-height: 0;
+        }
+
+        canvas { max-width: 100%; height: auto; }
+    </style>
 </head>
-
 <body>
 
 <div class="container">
-  <h1>🧠 Focus IA Pro</h1>
-  <p>Optimiza tu concentración</p>
+    <h1>🧠 Focus IA Pro</h1>
+    <p>Optimiza tu concentración con IA</p>
 
-  <div class="progress">
-    <div class="progress-bar" id="barra"></div>
-  </div>
+    <div class="progress">
+        <div class="progress-bar" id="barra"></div>
+    </div>
 
-  <h2 id="timer">⏱️ 01:00</h2>
-  <h2 id="estado">Estado: ---</h2>
+    <div id="timer">⏱️ 01:00</div>
+    <div id="estado">Estado: Esperando...</div>
 
-  <div class="stats">
-    Distracciones: <span id="contador">0</span>
-  </div>
+    <div class="stats">
+        Distracciones: <span id="contador" style="color: #e53e3e;">0</span>
+    </div>
 
-  <button onclick="iniciar()">▶️ Iniciar</button>
-  <button onclick="pausar()">⏸️ Pausar</button>
+    <div class="controles">
+        <button class="btn-start" onclick="iniciar()">▶️ Iniciar</button>
+        <button class="btn-pause" onclick="pausar()">⏸️ Pausar</button>
+        <button class="btn-reset" onclick="reiniciar()">🔄 Reiniciar</button>
+    </div>
 
-  <div id="webcam-container"></div>
+    <div id="webcam-container"></div>
 </div>
 
-<audio id="alerta" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+<audio id="alerta" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
 <script>
+    // 🔗 URL DE TU MODELO
+    const URL = "https://teachablemachine.withgoogle.com/models/rnFxUio5U/";
 
-// 🔗 LINK CORREGIDO (con / al final)
-const URL = "https://teachablemachine.withgoogle.com/models/rnFxUio5U/";
+    let model, webcam, maxPredictions;
+    let tiempoTotal = 60; 
+    let tiempo = tiempoTotal;
+    let corriendo = false;
+    let distracciones = 0;
+    let ultimoEstado = "";
+    let modeloCargado = false;
 
-// VARIABLES
-let model, webcam, maxPredictions;
-
-// ⏱️ CONFIG
-let tiempoTotal = 60; // demo
-let tiempo = tiempoTotal;
-let corriendo = false;
-let distracciones = 0;
-
-// ▶️ CONTROL
-function iniciar() { corriendo = true; }
-function pausar() { corriendo = false; }
-
-// ⏱️ TIMER
-setInterval(() => {
-  if (corriendo && tiempo > 0) {
-    tiempo--;
-
-    let min = Math.floor(tiempo / 60);
-    let sec = tiempo % 60;
-
-    document.getElementById("timer").innerText =
-      `⏱️ ${min}:${sec < 10 ? "0" : ""}${sec}`;
-
-    let progreso = (tiempo / tiempoTotal) * 100;
-    document.getElementById("barra").style.width = progreso + "%";
-  }
-
-  if (tiempo === 0) {
-    alert("Tiempo de descanso 😌");
-    corriendo = false;
-  }
-}, 1000);
-
-// 🤖 IA
-async function init() {
-  const modelURL = URL + "model.json";
-  const metadataURL = URL + "metadata.json";
-
-  model = await tmImage.load(modelURL, metadataURL);
-  maxPredictions = model.getTotalClasses();
-
-  webcam = new tmImage.Webcam(300, 300, true);
-  await webcam.setup();
-  await webcam.play();
-
-  document.getElementById("webcam-container").appendChild(webcam.canvas);
-  window.requestAnimationFrame(loop);
-}
-
-async function loop() {
-  webcam.update();
-  await predict();
-  window.requestAnimationFrame(loop);
-}
-
-// 🧠 PREDICCIÓN
-async function predict() {
-  const prediction = await model.predict(webcam.canvas);
-
-  let mayor = 0;
-  let clase = "";
-
-  for (let i = 0; i < maxPredictions; i++) {
-    if (prediction[i].probability > mayor) {
-      mayor = prediction[i].probability;
-      clase = prediction[i].className;
+    // --- CONTROLES DEL TIMER ---
+    function iniciar() {
+        if(!modeloCargado) {
+            alert("Espera a que la cámara cargue antes de iniciar.");
+            return;
+        }
+        corriendo = true;
     }
-  }
 
-  if (clase === "Concentrado") {
-    document.getElementById("estado").innerText = "🟢 Concentrado";
-    document.querySelector(".container").style.background = "#e6fffa";
-  } else {
-    document.getElementById("estado").innerText = "🔴 Distraído";
-    document.querySelector(".container").style.background = "#ffe6e6";
-    alerta();
-  }
-}
+    function pausar() {
+        corriendo = false;
+        document.getElementById("estado").innerText = "⏸️ Pausado";
+        document.querySelector(".container").style.background = "white";
+    }
 
-// 🔔 ALERTA
-function alerta() {
-  document.getElementById("alerta").play();
-  distracciones++;
-  document.getElementById("contador").innerText = distracciones;
-}
+    function reiniciar() {
+        corriendo = false;
+        tiempo = tiempoTotal;
+        distracciones = 0;
+        ultimoEstado = "";
+        document.getElementById("contador").innerText = "0";
+        actualizarInterfaz();
+        document.getElementById("estado").innerText = "Estado: Reiniciado";
+        document.querySelector(".container").style.background = "white";
+    }
 
-// 🚀 INICIO SEGURO (para navegador)
-let iniciado = false;
+    // --- BUCLE DEL TEMPORIZADOR ---
+    setInterval(() => {
+        if (corriendo && tiempo > 0) {
+            tiempo--;
+            actualizarInterfaz();
+        }
+        if (tiempo === 0 && corriendo) {
+            corriendo = false;
+            alert("¡Felicidades! Completaste tu sesión 😌");
+            reiniciar();
+        }
+    }, 1000);
 
-document.body.addEventListener("click", () => {
-  if (!iniciado) {
-    iniciado = true;
-    init();
-  }
-});
+    function actualizarInterfaz() {
+        let min = Math.floor(tiempo / 60);
+        let sec = tiempo % 60;
+        document.getElementById("timer").innerText = `⏱️ ${min}:${sec < 10 ? "0" : ""}${sec}`;
+        let progreso = (tiempo / tiempoTotal) * 100;
+        document.getElementById("barra").style.width = progreso + "%";
+    }
+
+    // --- LÓGICA DE INTELIGENCIA ARTIFICIAL ---
+    async function initIA() {
+        try {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            // Configuración de Webcam
+            const flip = true; 
+            webcam = new tmImage.Webcam(250, 250, flip); 
+            
+            await webcam.setup(); // Solicitar permiso
+            await webcam.play();
+            
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            modeloCargado = true;
+            document.getElementById("estado").innerText = "✅ Cámara lista";
+            
+            window.requestAnimationFrame(loop);
+        } catch (error) {
+            console.error(error);
+            document.getElementById("estado").innerText = "❌ Error de cámara";
+            alert("No se pudo acceder a la cámara. Verifica los permisos en tu navegador.");
+        }
+    }
+
+    async function loop() {
+        webcam.update(); 
+        if (corriendo) {
+            await predict();
+        }
+        window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        let mayorProb = 0;
+        let claseDetectada = "";
+
+        for (let i = 0; i < maxPredictions; i++) {
+            if (prediction[i].probability > mayorProb) {
+                mayorProb = prediction[i].probability;
+                claseDetectada = prediction[i].className;
+            }
+        }
+
+        const container = document.querySelector(".container");
+        const statusText = document.getElementById("estado");
+
+        if (claseDetectada === "Concentrado") {
+            statusText.innerText = "🟢 Concentrado";
+            container.style.background = "#e6fffa";
+            ultimoEstado = "Concentrado";
+        } else {
+            statusText.innerText = "🔴 Distraído";
+            container.style.background = "#ffe6e6";
+            
+            // Solo suena y suma si el estado anterior no era ya "Distraído"
+            if (ultimoEstado !== "Distraído") {
+                lanzarAlerta();
+                ultimoEstado = "Distraído";
+            }
+        }
+    }
+
+    function lanzarAlerta() {
+        const audio = document.getElementById("alerta");
+        audio.currentTime = 0;
+        audio.play().catch(e => console.log("Audio bloqueado: ", e));
+        distracciones++;
+        document.getElementById("contador").innerText = distracciones;
+    }
+
+    // Cargar IA automáticamente al hacer el primer clic en la página
+    window.addEventListener('click', () => {
+        if (!modeloCargado) initIA();
+    }, { once: true });
 
 </script>
 
